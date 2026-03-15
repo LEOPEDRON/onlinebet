@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>OnlineBet</title>
+<style>
+body{font-family:Arial;background:#0f172a;color:white;text-align:center;}
+.profile img{width:220px;border-radius:20px;border:4px solid white;}
+.bet{background:#1e293b;padding:20px;margin:20px;border-radius:10px;}
+.betimg{width:200px;border-radius:10px;}
+button{padding:8px 12px;margin:5px;border:none;border-radius:5px;background:#38bdf8;cursor:pointer;}
+button:hover{background:#0ea5e9;}
+.shop{background:#1e293b;padding:20px;margin:20px;border-radius:10px;}
+table{margin:auto;border-collapse:collapse;}
+td,th{border:1px solid white;padding:10px;}
+.playericon{width:50px;border-radius:10px;}
+</style>
+</head>
+<body>
+
+<h1>ONLINEBET</h1>
+
+<div id="login">
+<h2>Pseudo</h2>
+<input id="username">
+<div id="adminpass" style="display:none">
+<p>Mot de passe admin</p>
+<input id="password" type="password">
+</div>
+<button onclick="login()">Connexion</button>
+</div>
+
+<div id="game" style="display:none">
+
+<div class="profile">
+<img id="profileIcon">
+<h2 id="welcome"></h2>
+</div>
+
+<h3>Argent : <span id="money"></span></h3>
+<h3>Victoires : <span id="wins"></span></h3>
+
+<button onclick="daily()">Bonus quotidien</button>
+<button onclick="chanceGame()">🎲 Hasard (-10)</button>
+<button onclick="logout()">Se déconnecter</button>
+
+<hr>
+
+<h2>Paris</h2>
+<div id="bets"></div>
+
+<hr>
+
+<h2>Classement</h2>
+<table>
+<thead>
+<tr>
+<th>Profil</th>
+<th>Joueur</th>
+<th>Argent</th>
+<th>Victoires</th>
+</tr>
+</thead>
+<tbody id="leaderboard"></tbody>
+</table>
+
+<hr>
+
+<h2>Boutique</h2>
+<div class="shop">
+<h3>Icônes</h3>
+<button onclick="buyIcon('bronze',200)">Bronze (200)</button>
+<button onclick="buyIcon('argent',500)">Argent (500)</button>
+<button onclick="buyIcon('or',1000)">Or (1000)</button>
+<button onclick="buyIcon('diamant',3000)">Diamant (3000)</button>
+
+<h3>Animaux</h3>
+<button onclick="buyIcon('chien',800)">🐶 Chien (800)</button>
+<button onclick="buyIcon('chat',800)">🐱 Chat (800)</button>
+<button onclick="buyIcon('tigre',2500)">🐯 Tigre (2500)</button>
+<button onclick="buyIcon('dragon',5000)">🐉 Dragon (5000)</button>
+<button onclick="buyIcon('phoenix',10000)">🔥 Phoenix Ultra Rare (10000)</button>
+<button onclick="buyIcon('licorne',15000)">🦄 Licorne Ultra Rare (15000)</button>
+
+<h3>Inventaire</h3>
+<p id="inventory"></p>
+</div>
+
+<hr>
+
+<div id="adminPanel" style="display:none">
+<h2>Admin</h2>
+<input id="betTitle" placeholder="Titre">
+<input id="betImage" placeholder="URL image">
+<input id="betOption1" placeholder="Equipe 1">
+<input id="betOption2" placeholder="Equipe 2">
+<br><br>
+<input type="date" id="betDate">
+<input type="time" id="betTime">
+<br><br>
+<button onclick="addBet()">Créer pari</button>
+
+<hr>
+<h3>Ajouter argent à un joueur</h3>
+<input id="addUserName" placeholder="Pseudo">
+<input id="addAmount" placeholder="Montant" type="number">
+<button onclick="addMoney()">Ajouter pièces</button>
+</div>
+
+</div>
+
+<script>
+let admin="ADMIN"
+let adminPassword="1234"
+
+let icons={
+base:"https://i.imgur.com/6VBx3io.png",
+bronze:"https://i.imgur.com/1X6qP4K.png",
+argent:"https://i.imgur.com/3k9X5aS.png",
+or:"https://i.imgur.com/2DhmtJ4.png",
+chien:"https://i.imgur.com/4AiXzf8.jpeg",
+chat:"https://i.imgur.com/JIX9h2K.jpeg",
+tigre:"https://i.imgur.com/QZ7Z8qF.jpeg",
+dragon:"https://i.imgur.com/w1X4Q6R.jpeg",
+phoenix:"https://i.imgur.com/8w9vhZZ.png",
+licorne:"https://i.imgur.com/9tI8Buv.png"
+}
+
+let user=localStorage.getItem("currentUser")
+let users=JSON.parse(localStorage.getItem("users"))||{}
+let bets=JSON.parse(localStorage.getItem("bets"))||[]
+let betsPlaced=JSON.parse(localStorage.getItem("betsPlaced"))||[]
+
+document.getElementById("username").addEventListener("input",function(){
+if(this.value===admin) document.getElementById("adminpass").style.display="block"
+else document.getElementById("adminpass").style.display="none"
+})
+
+if(user) startGame()
+
+function login(){
+let name=document.getElementById("username").value
+if(name===admin){
+if(document.getElementById("password").value!==adminPassword){alert("Mot de passe incorrect");return}
+}
+if(!users[name]){users[name]={money:1000,wins:0,lastDaily:0,inventory:[],icon:"base"}}
+user=name
+localStorage.setItem("currentUser",user)
+localStorage.setItem("users",JSON.stringify(users))
+startGame()
+}
+
+function startGame(){
+document.getElementById("login").style.display="none"
+document.getElementById("game").style.display="block"
+document.getElementById("welcome").innerText="Bienvenue "+user
+if(user===admin) document.getElementById("adminPanel").style.display="block"
+update()
+showBets()
+showLeaderboard()
+showInventory()
+updateIcon()
+}
+
+function updateIcon(){document.getElementById("profileIcon").src=icons[users[user].icon]}
+function logout(){localStorage.removeItem("currentUser");location.reload()}
+function update(){if(users[user].money<0)users[user].money=0;document.getElementById("money").innerText=users[user].money;document.getElementById("wins").innerText=users[user].wins;localStorage.setItem("users",JSON.stringify(users))}
+
+function daily(){let now=Date.now();if(now-users[user].lastDaily<86400000){alert("Bonus déjà pris");return} users[user].money+=100;update()}
+
+// Hasard avec pertes et gains plus équilibrés
+function chanceGame(){
+if(users[user].money<10){alert("Pas assez d'argent");return}
+users[user].money-=10
+let r=Math.random()
+if(r<0.40){users[user].money-=5;alert("Mauvaise chance -5")}
+else if(r<0.65){alert("Perdu")}
+else if(r<0.80){users[user].money+=10;alert("Petit gain +10")}
+else if(r<0.92){users[user].money+=20;alert("Gain +20")}
+else{users[user].money+=50;alert("Jackpot +50")}
+update()
+}
+
+function buyIcon(icon,price){
+if(users[user].money<price){alert("Pas assez d'argent");return}
+users[user].money-=price
+users[user].inventory.push(icon)
+users[user].icon=icon
+update()
+showInventory()
+updateIcon()
+}
+
+function showInventory(){document.getElementById("inventory").innerText=users[user].inventory.join(", ")}
+
+function addBet(){
+let title=document.getElementById("betTitle").value
+let img=document.getElementById("betImage").value
+let o1=document.getElementById("betOption1").value
+let o2=document.getElementById("betOption2").value
+let date=document.getElementById("betDate").value
+let time=document.getElementById("betTime").value
+bets.push({title,img,o1,o2,date,time,finished:false})
+localStorage.setItem("bets",JSON.stringify(bets))
+showBets()
+}
+
+function bet(index,choice){
+let amount=100
+if(users[user].money<amount){alert("Pas assez d'argent");return}
+users[user].money-=amount
+betsPlaced.push({user,bet:index,choice,amount})
+update()
+}
+
+function resolveBet(index,winner){
+betsPlaced.forEach(b=>{if(b.bet===index && b.choice===winner){users[b.user].money+=b.amount*2;users[b.user].wins+=1}})
+bets[index].finished=true
+localStorage.setItem("users",JSON.stringify(users))
+localStorage.setItem("bets",JSON.stringify(bets))
+update()
+showLeaderboard()
+showBets()
+}
+
+function showBets(){
+let div=document.getElementById("bets")
+div.innerHTML=""
+bets.forEach((b,i)=>{
+div.innerHTML+=`<div class="bet">
+<h3>${b.title}</h3>
+<p>${b.date} ${b.time}</p>
+<img class="betimg" src="${b.img}">
+<br><br>
+${b.o1} <button onclick="bet(${i},'1')">Parier</button>
+${b.o2} <button onclick="bet(${i},'2')">Parier</button>
+<br><br>
+${user===admin && !b.finished ? `<button onclick="resolveBet(${i},'1')">Gagnant ${b.o1}</button><button onclick="resolveBet(${i},'2')">Gagnant ${b.o2}</button>` : ""}
+</div>`
+})
+}
+
+function showLeaderboard(){
+let board=document.getElementById("leaderboard")
+board.innerHTML=""
+let list=Object.entries(users)
+list.sort((a,b)=>b[1].money-a[1].money)
+list.forEach(u=>{
+board.innerHTML+=`<tr>
+<td><img class="playericon" src="${icons[u[1].icon]}"></td>
+<td>${u[0]}</td>
+<td>${u[1].money}</td>
+<td>${u[1].wins}</td>
+</tr>`
+})
+}
+
+// Admin ajoute argent
+function addMoney(){
+let name=document.getElementById("addUserName").value
+let amount=parseInt(document.getElementById("addAmount").value)
+if(!users[name]){alert("Joueur introuvable");return}
+users[name].money+=amount
+localStorage.setItem("users",JSON.stringify(users))
+update()
+showLeaderboard()
+alert(`${amount} ajouté à ${name}`)
+}
+
+</script>
+</body>
+</html>
